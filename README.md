@@ -18,6 +18,18 @@ Bench testing firmware for the **M5Stack Cardputer ADV**. Plug a module into the
 | **System info** | Battery, heap, IMU, MAC, uptime. |
 | **Settings / pins** | Remap CS/IRQ/RST/AUX, SPI and UART pins, default frequencies and brightness. Saved to flash. |
 
+## Screenshots
+
+Captured from the device over USB.
+
+| Main menu | Test rig profiles |
+|---|---|
+| ![Main menu](docs/screenshots/menu.png) | ![Test rig profile list](docs/screenshots/test-rig-profiles.png) |
+
+| Wiring screen (CC1101) | Test result (no module attached) |
+|---|---|
+| ![CC1101 wiring screen](docs/screenshots/test-rig-wiring.png) | ![Failed test result](docs/screenshots/test-rig-result.png) |
+
 ## Build and flash
 
 Requires [PlatformIO](https://platformio.org/).
@@ -47,6 +59,16 @@ To flash it some other way (M5Burner, web flasher, or keeping it next to other f
 On text-entry screens (UART terminal, payload editor), `;.,/` type normally. Hold **Fn** to use them as arrows.
 
 In a settings form you can start typing digits on a number field to type a value directly.
+
+## USB remote and screenshots
+
+The firmware listens on its USB serial port. Sending `Ctrl-P` (0x10) returns the current frame as a `BMSHOT <w> <h>` line followed by raw big-endian RGB565; any other byte is treated as that key being pressed. `tools/screenshot.py` uses this to drive the UI and save PNGs (Python 3, no extra packages):
+
+```bash
+python3 tools/screenshot.py out_dir s:menu 'k:\r' w:0.5 s:rig_menu
+```
+
+Steps are `k:<keys>` to press keys, `w:<seconds>` to wait and `s:<name>` to save a screenshot. Set `BENCHMATE_PORT` if the device is not on `/dev/cu.usbmodem101`.
 
 ## Wiring
 

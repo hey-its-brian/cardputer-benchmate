@@ -51,6 +51,7 @@ void setup()
 {
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
+    Serial.begin(115200);  // USB serial remote, see ui.cpp
     settingsLoad();
     M5Cardputer.Display.setRotation(1);
     M5Cardputer.Display.setBrightness(g.brightness);

@@ -48,10 +48,41 @@ static Key decode(bool textMode)
     return k;
 }
 
+// USB serial remote, for screenshots and driving the UI from a computer.
+// Ctrl-P (0x10) dumps the current frame as "BMSHOT <w> <h>" plus raw RGB565;
+// any other byte is treated as that key being pressed.
+static Key serialKey(bool textMode)
+{
+    Key k;
+    if (!Serial.available()) return k;
+    int c = Serial.read();
+    if (c == 0x10) {
+        Serial.printf("\nBMSHOT %d %d\n", W, H);
+        Serial.write((const uint8_t*)canvas.getBuffer(), W * H * 2);
+        Serial.flush();
+        return k;
+    }
+    if (c == '\r' || c == '\n') { k.type = K_ENTER; return k; }
+    if (c == 0x7F || c == 0x08) { k.type = K_DEL; return k; }
+    if (c == '\t') { k.type = K_TAB; return k; }
+    if (c == '`') { k.type = K_BACK; return k; }
+    if (!textMode) {
+        switch (c) {
+            case ';': k.type = K_UP;    return k;
+            case '.': k.type = K_DOWN;  return k;
+            case ',': k.type = K_LEFT;  return k;
+            case '/': k.type = K_RIGHT; return k;
+        }
+    }
+    if (c >= 32 && c < 127) { k.type = K_CHAR; k.c = c; }
+    return k;
+}
+
 Key poll(bool textMode)
 {
     M5Cardputer.update();
     uint32_t now = millis();
+    if (Key sk = serialKey(textMode)) return sk;
     if (M5Cardputer.BtnA.wasPressed()) {
         Key k;
         k.type = K_BACK;
