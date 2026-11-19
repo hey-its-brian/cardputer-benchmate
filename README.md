@@ -26,9 +26,9 @@ Captured from the device over USB.
 |---|---|
 | ![Main menu](docs/screenshots/menu.png) | ![Test rig profile list](docs/screenshots/test-rig-profiles.png) |
 
-| Wiring screen (CC1101) | Test result (no module attached) |
+| Wiring screen (CC1101) | Test result (GDO0 wired to a different pin) |
 |---|---|
-| ![CC1101 wiring screen](docs/screenshots/test-rig-wiring.png) | ![Failed test result](docs/screenshots/test-rig-result.png) |
+| ![CC1101 wiring screen](docs/screenshots/test-rig-wiring.png) | ![Test result that pinpoints a mis-wired GDO0 line](docs/screenshots/test-rig-result.png) |
 
 ## Build and flash
 

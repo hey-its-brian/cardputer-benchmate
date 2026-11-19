@@ -118,14 +118,42 @@ bool checkSelect(Results& r)
     return true;
 }
 
+// Looks for a module output on the other EXT / Grove pins. `drive(level)`
+// makes the module drive that output high or low. Returns the GPIO that
+// follows it, or -1.
+template <typename F>
+int findLine(int expected, F drive)
+{
+    const PinConfig& p = g.pins;
+    const int8_t cand[] = {p.rst, p.irq, p.aux, p.uartTx, p.uartRx, p.groveA, p.groveB};
+    int found = -1;
+    for (int8_t pin : cand) {
+        if (pin == expected || pin < 0) continue;
+        drive(true);
+        pinMode(pin, INPUT_PULLDOWN);
+        delay(1);
+        bool hi = digitalRead(pin);
+        drive(false);
+        pinMode(pin, INPUT_PULLUP);
+        delay(1);
+        bool lo = !digitalRead(pin);
+        pinMode(pin, INPUT);
+        if (hi && lo && found < 0) found = pin;
+    }
+    return found;
+}
+
 // One GDO/IRQ style line, judged from four samples:
 //   bothHi/bothLo: both module outputs driven the same way (is it connected?)
 //   mine/other:    only this output high, only the other output high (is it the right one?)
-void judgeLine(Results& r, const char* name, int gpio, bool bothHi, bool bothLo, bool mine, bool other)
+// `elsewhere` is the GPIO the signal was found on instead, or -1.
+void judgeLine(Results& r, const char* name, int gpio, bool bothHi, bool bothLo, bool mine, bool other, int elsewhere)
 {
     String where = String(name) + " -> G" + gpio;
-    if (!(bothHi && !bothLo)) add(r, FAIL, where, "no signal. Wire open?");
-    else if (mine && !other) add(r, PASS, where, "toggles");
+    if (!(bothHi && !bothLo)) {
+        if (elsewhere >= 0) add(r, FAIL, where, String("no signal here. It is on ") + hostPin(elsewhere) + " instead");
+        else add(r, FAIL, where, "no signal on any EXT or Grove pin. Wire open?");
+    } else if (mine && !other) add(r, PASS, where, "toggles");
     else if (!mine && other) add(r, FAIL, where, "swapped with the other GDO line");
     else add(r, FAIL, where, "follows both outputs. Shorted together?");
 }
@@ -233,8 +261,11 @@ void runCC1101(Results& r)
     pinMode(p.aux, INPUT_PULLDOWN);
     delay(1);
     bool b0 = digitalRead(p.irq), b2 = digitalRead(p.aux);
-    judgeLine(r, "GDO0", p.irq, hi0, lo0, a0, b0);
-    judgeLine(r, "GDO2", p.aux, hi2, lo2, b2, a2);
+    int else0 = -1, else2 = -1;
+    if (!(hi0 && !lo0)) else0 = findLine(p.irq, [](bool h) { ccGdo(h, !h); });
+    if (!(hi2 && !lo2)) else2 = findLine(p.aux, [](bool h) { ccGdo(!h, h); });
+    judgeLine(r, "GDO0", p.irq, hi0, lo0, a0, b0, else0);
+    judgeLine(r, "GDO2", p.aux, hi2, lo2, b2, a2, else2);
     pinMode(p.irq, INPUT);
     pinMode(p.aux, INPUT);
 
