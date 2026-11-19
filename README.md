@@ -4,7 +4,7 @@ Bench testing firmware for the **M5Stack Cardputer ADV**. Plug a module into the
 
 | Tool | What it does |
 |---|---|
-| **Test rig** | Pick a module profile, see the wiring on screen, then run a pass/fail sequence that checks each signal wire and basic function. Profiles: nRF24L01+ / Ebyte E01, CC1101 8-pin, Ebyte E07, 4-pin GPS, I2C environmental sensors (BME280/BMP280, SHT3x/4x, AHT10/20, SCD4x), PN532 NFC (I2C or UART), ESP32 boards via the ROM bootloader, supply voltage. Enter re-runs the test for the next module and keeps a pass/fail count. |
+| **Test rig** | Pick a module profile, see the wiring on screen, then run a pass/fail sequence that checks each signal wire and basic function. Profiles: nRF24L01+ / Ebyte E01, CC1101 8-pin, CC1101 hat (GDO0 on G15), Ebyte E07, 4-pin GPS, I2C environmental sensors (BME280/BMP280, SHT3x/4x, AHT10/20, SCD4x), PN532 NFC (I2C or UART), ESP32 boards via the ROM bootloader, supply voltage. Enter re-runs the test for the next module and keeps a pass/fail count. |
 | **Auto detect** | Probes the EXT SPI bus for SX126x / SX127x / CC1101 / nRF24, scans both I2C buses, and listens for NMEA on EXT and Grove UARTs (both pin orders, common baud rates). |
 | **GPS / GNSS** | Auto-baud, fix type, lat/lon/alt/HDOP, UTC, **time-to-first-fix**, checksum stats, per-satellite SNR bars (GPS/GLONASS/Galileo/BeiDou/QZSS), raw NMEA view. |
 | **LoRa SX126x/127x** | Chip detect with TCXO auto-probe, RX packet monitor (RSSI/SNR), TX test packets (manual or every 2 s), live noise-floor graph. Freq, BW, SF, CR, power and sync word (private, LoRaWAN or Meshtastic) are all adjustable. |
@@ -26,9 +26,13 @@ Captured from the device over USB.
 |---|---|
 | ![Main menu](docs/screenshots/menu.png) | ![Test rig profile list](docs/screenshots/test-rig-profiles.png) |
 
-| Wiring screen (CC1101) | Test result (GDO0 wired to a different pin) |
+| Wiring screen (CC1101) | Failing result (GDO0 wired to a different pin) |
 |---|---|
 | ![CC1101 wiring screen](docs/screenshots/test-rig-wiring.png) | ![Test result that pinpoints a mis-wired GDO0 line](docs/screenshots/test-rig-result.png) |
+
+| Passing result (CC1101 hat) |
+|---|
+| ![Passing CC1101 hat test](docs/screenshots/test-rig-pass.png) |
 
 ## Build and flash
 

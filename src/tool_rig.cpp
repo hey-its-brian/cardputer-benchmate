@@ -203,7 +203,8 @@ void ccGdo(bool gdo0High, bool gdo2High)
     delayMicroseconds(300);
 }
 
-void runCC1101(Results& r)
+// gdo2 < 0 means the board does not bring GDO2 out.
+void ccTest(Results& r, int gdo0, int gdo2)
 {
     const PinConfig& p = g.pins;
     radioSpiBegin();
@@ -242,32 +243,28 @@ void runCC1101(Results& r)
     // GDO0 / GDO2. Each sample uses the pull that opposes the expected level,
     // so an open wire reads wrong instead of floating to the right answer.
     busy("CC1101 test", "checking GDO0 / GDO2...");
-    ccGdo(true, true);
-    pinMode(p.irq, INPUT_PULLDOWN);
-    pinMode(p.aux, INPUT_PULLDOWN);
-    delay(1);
-    bool hi0 = digitalRead(p.irq), hi2 = digitalRead(p.aux);
-    ccGdo(false, false);
-    pinMode(p.irq, INPUT_PULLUP);
-    pinMode(p.aux, INPUT_PULLUP);
-    delay(1);
-    bool lo0 = digitalRead(p.irq), lo2 = digitalRead(p.aux);
-    ccGdo(true, false);
-    pinMode(p.irq, INPUT_PULLDOWN);
-    delay(1);
-    bool a0 = digitalRead(p.irq), a2 = digitalRead(p.aux);
-    ccGdo(false, true);
-    pinMode(p.irq, INPUT_PULLUP);
-    pinMode(p.aux, INPUT_PULLDOWN);
-    delay(1);
-    bool b0 = digitalRead(p.irq), b2 = digitalRead(p.aux);
+    bool has2 = gdo2 >= 0;
+    auto sample = [&](bool g0High, bool g2High, bool& v0, bool& v2) {
+        ccGdo(g0High, g2High);
+        pinMode(gdo0, g0High ? INPUT_PULLDOWN : INPUT_PULLUP);
+        if (has2) pinMode(gdo2, g2High ? INPUT_PULLDOWN : INPUT_PULLUP);
+        delay(1);
+        v0 = digitalRead(gdo0);
+        v2 = has2 ? digitalRead(gdo2) : false;
+    };
+    bool hi0, hi2, lo0, lo2, a0, a2, b0, b2;
+    sample(true, true, hi0, hi2);
+    sample(false, false, lo0, lo2);
+    sample(true, false, a0, a2);
+    sample(false, true, b0, b2);
     int else0 = -1, else2 = -1;
-    if (!(hi0 && !lo0)) else0 = findLine(p.irq, [](bool h) { ccGdo(h, !h); });
-    if (!(hi2 && !lo2)) else2 = findLine(p.aux, [](bool h) { ccGdo(!h, h); });
-    judgeLine(r, "GDO0", p.irq, hi0, lo0, a0, b0, else0);
-    judgeLine(r, "GDO2", p.aux, hi2, lo2, b2, a2, else2);
-    pinMode(p.irq, INPUT);
-    pinMode(p.aux, INPUT);
+    if (!(hi0 && !lo0)) else0 = findLine(gdo0, [](bool h) { ccGdo(h, !h); });
+    if (has2 && !(hi2 && !lo2)) else2 = findLine(gdo2, [](bool h) { ccGdo(!h, h); });
+    judgeLine(r, "GDO0", gdo0, hi0, lo0, a0, b0, else0);
+    if (has2) judgeLine(r, "GDO2", gdo2, hi2, lo2, b2, a2, else2);
+    else add(r, INFO, "GDO2", "not wired on this hat, not tested");
+    pinMode(gdo0, INPUT);
+    if (has2) pinMode(gdo2, INPUT);
 
     // Crystal and synthesizer: tune, enter RX, expect the RX state.
     busy("CC1101 test", "checking radio...");
@@ -339,6 +336,26 @@ void runCC1101(Results& r)
     ccStrobe(0x39);  // SPWD
     pull(p.miso, GPIO_FLOATING);
     radioPinsRelease();
+}
+
+void runCC1101(Results& r) { ccTest(r, g.pins.irq, g.pins.aux); }
+
+// Cardputer CC1101 hat: plugs onto the EXT header, with GDO0 on the UART RX
+// pin (G15) and GDO2 not connected.
+constexpr int HAT_GDO0 = 15;
+void runCC1101Hat(Results& r) { ccTest(r, HAT_GDO0, -1); }
+
+void wiringCC1101Hat(Wiring& w)
+{
+    const PinConfig& p = g.pins;
+    wire(w, "CC1101 hat", "plug onto EXT header", DIM);
+    wire(w, "GDO0", hostPin(HAT_GDO0));
+    wire(w, "GDO2", "not connected", DIM);
+    wire(w, "CSN", hostPin(p.cs));
+    wire(w, "SCK", hostPin(p.sck));
+    wire(w, "MOSI", hostPin(p.mosi));
+    wire(w, "MISO", hostPin(p.miso));
+    wire(w, "RX/TX tools:", "IRQ = G15 in Settings", WARN);
 }
 
 void wiringCC1101(Wiring& w)
@@ -1325,6 +1342,7 @@ const Profile PROFILES[] = {
     {"Supply voltage", wiringVoltage, runVoltage},
     {"nRF24L01+ / E01", wiringNrf24, runNrf24},
     {"CC1101 8-pin", wiringCC1101, runCC1101},
+    {"CC1101 hat (GDO0 G15)", wiringCC1101Hat, runCC1101Hat},
     {"Ebyte E07 (CC1101)", wiringE07, runCC1101},
     {"GPS 4-pin", wiringGps, runGps},
     {"I2C env sensor", wiringI2c, runI2c},
